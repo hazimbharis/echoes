@@ -3,7 +3,7 @@ import pygame, math, random
 class Echo(object):
     def __int__(self, pos):
         self.pos = pos
-
+# [location, velocity, timer]
 
 # pygame setup
 pygame.init()
@@ -21,7 +21,7 @@ bg_width = bg.get_width()
 bg_rect = bg.get_rect()
 
 # define game variables
-scroll = 0
+scrollspeed = 0
 tiles = math.ceil(1280 / bg_width) + 1
 obstacle = pygame.Rect(800, 200, 80, 80)
 
@@ -32,6 +32,8 @@ x_change = 0
 y_change = 0
 
 screen_shake = 0
+particles = []
+circle_effects = []
 
 while running:
     x_change = 0
@@ -47,22 +49,41 @@ while running:
 
     # draw scrolling background and bg edge
     for i in range(0, tiles):
-        screen.blit(bg, (i * bg_width + scroll, 0))
-        bg_rect.x = i * bg_width + scroll
+        screen.blit(bg, (i * bg_width + scrollspeed, 0))
+        bg_rect.x = i * bg_width + scrollspeed
         pygame.draw.rect(screen, (0, 255, 0), bg_rect, 1)
 
     # scroll background
-    scroll -= 5
+    scrollspeed -= 5
 
     # reset scroll
-    if abs(scroll) > bg_width:
-        scroll = 0
+    if abs(scrollspeed) > bg_width:
+        scrollspeed = 0
 
-    # draw obstacle
-    pygame.draw.rect(screen, (0,0,0), obstacle, 4)
+    #screen.fill("black")
 
     # draw player circle
     pygame.draw.circle(screen, "red", player_pos, 40)
+
+    # Circle Effects ----------------------------------------- #
+    # pos, radius, width, speed, decay, color
+    for i, circle in sorted(list(enumerate(circle_effects)), reverse=True):
+
+        circle[1] += circle[3]
+        circle[2] -= circle[4]
+        if circle[2] < 1:
+            circle_effects.pop(i)
+        else:
+            pygame.draw.circle(
+                screen,
+                circle[5],
+                (circle[0][0], circle[0][1]),
+                int(circle[1]),
+                min(int(circle[2]), int(circle[1])))
+
+    # draw obstacle
+    pygame.draw.rect(screen, (0,0,0), obstacle, 0)
+    # pygame.draw.rect(screen, (0,0,0), (obstacle[0] + scrollspeed, obstacle[1], obstacle[2] + scrollspeed, obstacle[3]), 0)
 
     # draw player hitbox
     pygame.draw.rect(screen, "green", player_rect, 1)
@@ -82,6 +103,21 @@ while running:
     player_pos.y = player_pos.y + y_change
     player_rect.x = player_pos.x - 40
     player_rect.y = player_pos.y - 40
+
+    if keys[pygame.K_SPACE]:
+        screen_shake = 20
+        particles.append([[player_pos.x, player_pos.y], [random.randint(0, 20) / 10 - 1, -2], random.randint(4, 6)])
+        circle_effects.append([(player_pos.x, player_pos.y), 10, 4, 5, 0.2, (255, 255, 255)]) # pos, radius, width, speed, decay, color
+        circle_effects.append([(player_pos.x, player_pos.y), 0, 10, 7, 0.1, (255, 255, 255)]) # pos, radius, width, speed, decay, color
+        #circle_effects = []
+
+    for particle in particles:
+        particle[0][0] += particle[1][0]
+        particle[0][1] += particle[1][1]
+        particle[2] -= 0.1
+        pygame.draw.circle(screen, (255, 255, 255), [int(particle[0][0]), int(particle[0][1])], int(particle[2]))
+        if particle[2] <= 0:
+            particles.remove(particle)  # can cause flickering for larger particle sizes
 
     if screen_shake > 0:
         screen_shake -= 1
