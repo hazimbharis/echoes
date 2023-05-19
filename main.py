@@ -1,5 +1,9 @@
-import pygame
-import math
+import pygame, math, random
+
+class Echo(object):
+    def __int__(self, pos):
+        self.pos = pos
+
 
 # pygame setup
 pygame.init()
@@ -26,6 +30,8 @@ player_rect = pygame.Rect(player_pos.x - 40, player_pos.y - 40, 80, 80)
 
 x_change = 0
 y_change = 0
+
+screen_shake = 0
 
 while running:
     x_change = 0
@@ -77,7 +83,18 @@ while running:
     player_rect.x = player_pos.x - 40
     player_rect.y = player_pos.y - 40
 
+    if screen_shake > 0:
+        screen_shake -= 1
+
+    render_offset = [0, 0]
+
+    if screen_shake:
+        render_offset[0] = random.randint(0, 8) - 4
+        render_offset[1] = random.randint(0, 8) - 4
+        pass
+
     if player_rect.colliderect(obstacle):
+        screen_shake = 20
         player_pos.x = player_pos.x - x_change
         player_pos.y = player_pos.y - y_change
         pygame.draw.rect(screen, "red", player_rect, 1)
@@ -85,6 +102,7 @@ while running:
     # RENDER YOUR GAME HERE
 
     # flip() the display to put your work on screen
+    screen.blit(screen, render_offset)
     pygame.display.flip()
 
     dt = clock.tick(60)/1000 # limits FPS to 60
