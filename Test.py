@@ -20,8 +20,21 @@ height = 300
 y_change =0
 gravity = 1
 x_change = 0
-obstacle_speed = 2
-obstacles = [300,450,600]
+obstacle_speed = 1
+obstacle_count = 15
+obstacles = []
+rectangles = []
+
+for i in range(0,obstacle_count):
+    pos = random.randint(200,600)
+    rectHeight = random.randint(0,150)
+    value = [pos,rectHeight]
+    rectangles.append(1)
+    obstacles.append(value)
+print(obstacles)
+
+
+
 active = True
 
 screen = pygame.display.set_mode([width,height])
@@ -31,8 +44,18 @@ fps = 60
 #font = pygame.font.Font('freesansbold.tff', 16)
 timer = pygame.time.Clock()
 
+
+def collidedRect(rectangles,player):
+    hasCollided = False
+    for i in range(0,len(rectangles)):
+        if player.colliderect(rectangles[i]):
+            hasCollided = True
+            break
+    return hasCollided
+
+
 running = True
-while running:
+while running and active:
     timer.tick(fps)
     screen.fill(background)
     #score_text = font.render(f'Score: {score}',True,white,black)
@@ -40,17 +63,19 @@ while running:
 
     floor = pygame.draw.rect(screen,white,[0,220,width,5] )
     player = pygame.draw.rect(screen,green,[player_x,player_y, 20,20])
-    obstacle0 = pygame.draw.rect(screen, red, [obstacles[0],200,20,20])
-    obstacle1 = pygame.draw.rect(screen, white, [obstacles[1], 200, 20, 20])
-    obstacle2 = pygame.draw.rect(screen, orange, [obstacles[2], 200, 20, 20])
+    for i in range(0,len(obstacles)):
+        rectangle = pygame.draw.rect(screen, red, [obstacles[i][0], 220 - obstacles[i][1], 20, obstacles[i][1]])
+        rectangles[i] = rectangle
 
     for event in pygame.event.get(): #for any click, mouse etc
         if event.type == pygame.QUIT:
             running = False
         #jumping code
-        if event.type == pygame.KEYDOWN and active:
+        if event.type == pygame.KEYDOWN:
+
             if event.key == pygame.K_SPACE and y_change ==0: #only jump if not alr jumping
                 y_change = 18
+
             if event.key == pygame.K_RIGHT:
                 x_change = 2
             if event.key == pygame.K_LEFT:
@@ -63,23 +88,32 @@ while running:
                 x_change = 0
     for i in range(len(obstacles)):
         if active:
-            obstacles[i] -= obstacle_speed
-            if i < -20:
-                obstacles[i] = random.randint(470,570)
+            obstacles[i][0] -= obstacle_speed
+            if obstacles[i][0] < -20:
+                obstacles[i][1] = random.randint(10,150) # new height
+                obstacles[i][0] = random.randint(200,600) # new pos
                 score += 1
-            if player.colliderect(obstacle0) or player.colliderect(obstacle1) or player.colliderect(obstacle2):
-                active = False
 
-    if 0<=player_x <=430:
+            if player.colliderect(rectangles[i]):
+                y_change=0
+
+
+
+
+    if 0<=player_x <=100:
         player_x += x_change
+
     if player_x < 0:
         player_x = 0
-    if player_x > 430:
-        player_x = 430
+        active= False #player loses
+
+    if player_x > 100:
+        player_x = 100
 
     if y_change > 0 or player_y < 200: #200 for above floor, subtract when jumping
         player_y -= y_change
         y_change -= gravity
+
 
     if player_y > 200:
         player_y= 200 #if player goes thru floor
