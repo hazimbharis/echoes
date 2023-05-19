@@ -19,11 +19,17 @@ bg_rect = bg.get_rect()
 # define game variables
 scroll = 0
 tiles = math.ceil(1280 / bg_width) + 1
-obstacle = pygame.Rect(400, 200, 80, 80)
+obstacle = pygame.Rect(800, 200, 80, 80)
 
 player_pos = pygame.Vector2(screen.get_width() / 2, screen.get_height() / 2)
+player_rect = pygame.Rect(player_pos.x - 40, player_pos.y - 40, 80, 80)
+
+x_change = 0
+y_change = 0
 
 while running:
+    x_change = 0
+    y_change = 0
     # poll for events
     # pygame.QUIT event means the user clicked X to close your window
     for event in pygame.event.get():
@@ -53,18 +59,28 @@ while running:
     pygame.draw.circle(screen, "red", player_pos, 40)
 
     # draw player hitbox
-    pygame.draw.rect(screen, "green", ((player_pos.x - 40, player_pos.y - 40), (80,80)), 1)
+    pygame.draw.rect(screen, "green", player_rect, 1)
 
     # input handling
     keys = pygame.key.get_pressed()
     if keys[pygame.K_w]:
-        player_pos.y -= 300 * dt
+        y_change -= 300 * dt
     if keys[pygame.K_s]:
-        player_pos.y += 300 * dt
+        y_change += 300 * dt
     if keys[pygame.K_a]:
-        player_pos.x -= 300 * dt
+        x_change -= 300 * dt
     if keys[pygame.K_d]:
-        player_pos.x += 300 * dt
+        x_change += 300 * dt
+
+    player_pos.x = player_pos.x + x_change
+    player_pos.y = player_pos.y + y_change
+    player_rect.x = player_pos.x - 40
+    player_rect.y = player_pos.y - 40
+
+    if player_rect.colliderect(obstacle):
+        player_pos.x = player_pos.x - x_change
+        player_pos.y = player_pos.y - y_change
+        pygame.draw.rect(screen, "red", player_rect, 1)
 
     # RENDER YOUR GAME HERE
 
