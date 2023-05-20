@@ -8,7 +8,7 @@ class Echo(object):
 # pygame setup
 pygame.mixer.pre_init(44100, -16, 2, 512)
 pygame.init()
-screen = pygame.display.set_mode((1280, 500))
+screen = pygame.display.set_mode((1280, 500), flags=pygame.SCALED, vsync=1)
 pygame.display.set_caption("Echoes")
 clock = pygame.time.Clock()
 running = True
@@ -37,7 +37,7 @@ scrollspeed = 0
 tiles = math.ceil(1280 / bg1_width) + 1
 obstacle = pygame.Rect(800, 200, 80, 80)
 
-player_pos = pygame.Vector2(screen.get_width() / 2, screen.get_height() / 2)
+player_pos = pygame.Vector2(80, 440)
 player_rect = pygame.Rect(player_pos.x - 40, player_pos.y - 40, 80, 80)
 
 x_change = 0
@@ -47,9 +47,53 @@ screen_shake = 0
 particles = []
 circle_effects = []
 
+# runner variables
+gravity = 1
+obstacle_speed = 1
+obstacle_count = int((1280 / 100) - 1)
+obstacles = []
+rectangles = []
+curr_obs_count = 0
+
+def generateNewRect(obstacles,i):
+    pos = random.randint(200, 900)  # x position
+    rectHeight = random.randint(0, 100)  # y position
+    valid = True
+    for y in range(0, len(obstacles)):  # iterate over all of them, if any break rule then restart
+        if abs(obstacles[y][0] - pos) < 100:
+            valid = False
+            break
+    # otherwise must be correct
+    if (valid):
+        obstacles[i][0] = pos
+        obstacles[i][1] = rectHeight
+
+
+for x in range(0,obstacle_count):
+    pos = random.randint(200, 900)  # x position
+    rectHeight = random.randint(0,100) # y position
+    if curr_obs_count == 0:
+        value = [pos, rectHeight]
+        rectangles.append(1)
+        obstacles.append(value)
+        curr_obs_count += 1
+    else:
+        valid = True
+        for i in range(0,len(obstacles)): #iterate over all of them, if any break rule then restart
+            if abs(obstacles[i][0] - pos)<100:
+                valid = False
+                break
+        #otherwise must be correct
+        if(valid):
+            value = [pos, rectHeight]
+            rectangles.append(1)
+            obstacles.append(value)
+            curr_obs_count += 1
+
+
 while running:
     x_change = 0
-    y_change = 0
+    # y_change = 0
     bgx -= 3
     bgx2 -= 3
 
@@ -77,6 +121,23 @@ while running:
         # bg_rect.x = i * bg_width + scrollspeed
         pygame.draw.rect(screen, (0, 255, 0), bg_rect, 1)
 
+    for i in range(len(obstacles)):
+        obstacles[i][0] -= obstacle_speed
+        if obstacles[i][0] < -20:
+            generateNewRect(obstacles, i)
+            # obstacles[i][1] = random.randint(10,150) # new height
+            # obstacles[i][0] = random.randint(200,600) # new pos
+            # score += 1
+
+    print(player_pos.y)
+    if player_pos.y < 440: #200 for above floor, subtract when jumping
+        player_pos.y += y_change
+        y_change += gravity
+
+    if player_pos.y > 440:
+        player_pos.y = 440
+        y_change = 0
+
     # scroll background
     scrollspeed -= 5
 
@@ -84,7 +145,7 @@ while running:
     if abs(scrollspeed) > bg1_width:
         scrollspeed = 0
 
-    screen.fill("black")
+    #screen.fill("black")
 
     # draw player circle
     pygame.draw.circle(screen, "red", player_pos, 40)
@@ -108,8 +169,24 @@ while running:
         if (circle[0][0] + circle[1]) > (obstacle[0] - obstacle[2]):
             particles.append([[obstacle[0] + obstacle[2]/2, obstacle[1] + obstacle[3]/2], [random.randint(0, 20) / 10 - 1, -2], random.randint(4, 6)])
 
-    # draw obstacle
+        for rectangle in rectangles:
+
+            if (circle[0][0] + circle[1]) > (rectangle[0] - rectangle[2]):
+                particles.append([[rectangle[0] + rectangle[2] / 2, rectangle[1] + rectangle[3] / 2],
+                                  [random.randint(0, 20) / 10 - 1, -2], random.randint(4, 6)])
+
+            if player_rect.colliderect(rectangle):
+                screen_shake = 20
+                player_pos.x = player_pos.x - x_change
+                player_pos.y = player_pos.y - y_change
+                pygame.draw.rect(screen, "red", player_rect, 1)
+
+    # draw obstacles
     pygame.draw.rect(screen, (0,0,0), obstacle, 0)
+    for i in range(0, len(obstacles)):
+        rectangle = pygame.draw.rect(screen, (0, 255, 0), [obstacles[i][0], 480 - obstacles[i][1], 20, obstacles[i][1]])
+        rectangles[i] = rectangle
+
     # pygame.draw.rect(screen, (0,0,0), (obstacle[0] + scrollspeed, obstacle[1], obstacle[2] + scrollspeed, obstacle[3]), 0)
 
     # draw player hitbox
@@ -117,21 +194,29 @@ while running:
 
     # input handling
     keys = pygame.key.get_pressed()
-    if keys[pygame.K_w]:
-        y_change -= 300 * dt
-    if keys[pygame.K_s]:
-        y_change += 300 * dt
+    # if keys[pygame.K_w]:
+    #     y_change -= 300 * dt
+    # if keys[pygame.K_s]:
+    #     y_change += 300 * dt
+    print(y_change)
+    if keys[pygame.K_SPACE] and player_pos.y > 360:
+        y_change -= 150 * dt
     if keys[pygame.K_a]:
         x_change -= 300 * dt
     if keys[pygame.K_d]:
         x_change += 300 * dt
+
+    # player_pos.x = player_pos.x + x_change
+    # player_pos.y = player_pos.y + y_change
+    # player_rect.x = player_pos.x - 40
+    # player_rect.y = player_pos.y - 40
 
     player_pos.x = player_pos.x + x_change
     player_pos.y = player_pos.y + y_change
     player_rect.x = player_pos.x - 40
     player_rect.y = player_pos.y - 40
 
-    if keys[pygame.K_SPACE]:
+    if keys[pygame.K_SPACE] and (player_pos.y - y_change) == 440:
         screen_shake = 20
         echo_sound.play()
         particles.append([[player_pos.x, player_pos.y], [random.randint(0, 20) / 10 - 1, -2], random.randint(4, 6)])
@@ -164,27 +249,20 @@ while running:
         pygame.draw.rect(screen, "red", player_rect, 1)
 
     # RENDER YOUR GAME HERE
+    floor = pygame.draw.rect(screen, (0,0,0), [0, 480, screen.get_width(), 20])
 
     # flip() the display to put your work on screen
     screen.blit(screen, render_offset)
     pygame.display.flip()
 
-    dt = clock.tick(60)/1000 # limits FPS to 60
+    dt = clock.tick(60)/1000 # limits FPS to 30
 
 pygame.quit()
-# This is a sample Python script.
-
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
 
 def print_hi(name):
     # Use a breakpoint in the code line below to debug your script.
     print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
 
-
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
