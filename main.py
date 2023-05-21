@@ -1,9 +1,4 @@
-import pygame, math, random
-
-class Echo(object):
-    def __int__(self, pos):
-        self.pos = pos
-# [location, velocity, timer]
+import pygame, math, random, pygame.freetype
 
 # pygame setup
 pygame.mixer.pre_init(44100, -16, 2, 512)
@@ -13,12 +8,21 @@ pygame.display.set_caption("Echoes")
 clock = pygame.time.Clock()
 running = True
 dt = 0 # delta time
+my_font = pygame.freetype.Font('m5x7.ttf', 72)
+score_font = pygame.freetype.Font('m5x7.ttf', 48)
+# text_surface = my_font.render('You Lose', True, (255, 255, 255), 0)[0]
+# score_surface = score_font.render('Score: ' + clock.get_time().__str__(), True, (255, 255, 255), 0)[0]
 
 # load bg image
 bg1 = pygame.image.load("plain_background.png").convert()
 bg2 = pygame.image.load("stalagmite_background.png").convert()
 bg1 = pygame.transform.scale(bg1,(1280,500))
 bg2 = pygame.transform.scale(bg2,(1280,500))
+
+playerStandingSprite = pygame.image.load('standing_frame.png').convert_alpha()
+playerWalkingSprite = pygame.image.load('walking_animation.gif').convert_alpha()
+playerJumpingSprite = pygame.image.load('jumping_frame.png').convert_alpha()
+
 bg1_width = bg1.get_width()
 bg1_height = bg1.get_height()
 bg2_width = bg2.get_width()
@@ -38,7 +42,7 @@ tiles = math.ceil(1280 / bg1_width) + 1
 obstacle = pygame.Rect(800, 200, 80, 80)
 
 player_pos = pygame.Vector2(80, 440)
-player_rect = pygame.Rect(player_pos.x - 40, player_pos.y - 40, 80, 80)
+player_rect = pygame.Rect(player_pos.x, player_pos.y, 20, 20)
 
 x_change = 0
 y_change = 0
@@ -46,18 +50,20 @@ y_change = 0
 screen_shake = 0
 particles = []
 circle_effects = []
+gameover = False
+final_score = 0
 
 # runner variables
 gravity = 1
-obstacle_speed = 1
+obstacle_speed = 3
 obstacle_count = int((1280 / 100) - 1)
 obstacles = []
 rectangles = []
 curr_obs_count = 0
 
 def generateNewRect(obstacles,i):
-    pos = random.randint(200, 900)  # x position
-    rectHeight = random.randint(0, 100)  # y position
+    pos = random.randint(1280, 1280)  # x position
+    rectHeight = random.randint(10, 100)  # y position
     valid = True
     for y in range(0, len(obstacles)):  # iterate over all of them, if any break rule then restart
         if abs(obstacles[y][0] - pos) < 100:
@@ -70,8 +76,8 @@ def generateNewRect(obstacles,i):
 
 
 for x in range(0,obstacle_count):
-    pos = random.randint(200, 900)  # x position
-    rectHeight = random.randint(0,100) # y position
+    pos = random.randint(300, 1280)  # x position
+    rectHeight = random.randint(10,100) # y position
     if curr_obs_count == 0:
         value = [pos, rectHeight]
         rectangles.append(1)
@@ -92,6 +98,20 @@ for x in range(0,obstacle_count):
 
 
 while running:
+
+    if gameover:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+        screen.fill("white")
+        my_font.render_to(screen, (540, 220), "You Lose", (0, 0, 0))
+        score_font.render_to(screen, (580, 270), "Score: " + final_score.__str__(), (0, 0, 0))
+        pygame.display.flip()
+        dt = clock.tick(60) / 1000
+        continue
+
+
     x_change = 0
     # y_change = 0
     bgx -= 3
@@ -119,7 +139,7 @@ while running:
         screen.blit(bg2,(bgx2, 0))
         bg_rect.x = bgx + scrollspeed
         # bg_rect.x = i * bg_width + scrollspeed
-        pygame.draw.rect(screen, (0, 255, 0), bg_rect, 1)
+        # pygame.draw.rect(screen, (0, 255, 0), bg_rect, 1)
 
     for i in range(len(obstacles)):
         obstacles[i][0] -= obstacle_speed
@@ -129,7 +149,7 @@ while running:
             # obstacles[i][0] = random.randint(200,600) # new pos
             # score += 1
 
-    print(player_pos.y)
+    # print(player_pos.y)
     if player_pos.y < 440: #200 for above floor, subtract when jumping
         player_pos.y += y_change
         y_change += gravity
@@ -145,10 +165,16 @@ while running:
     if abs(scrollspeed) > bg1_width:
         scrollspeed = 0
 
-    #screen.fill("black")
+    screen.fill("black")
+    score_font.render_to(screen, (10, 10), "Score: " + math.floor(pygame.time.get_ticks()/100).__str__(), (255, 255, 255))
 
     # draw player circle
     pygame.draw.circle(screen, "red", player_pos, 40)
+    screen.blit(playerStandingSprite,
+                (player_pos.x - playerStandingSprite.get_width()/2 + 1, player_pos.y - playerStandingSprite.get_height()/2 + 20))
+
+
+
 
     # Circle Effects ----------------------------------------- #
     # pos, radius, width, speed, decay, color
@@ -175,17 +201,23 @@ while running:
                 particles.append([[rectangle[0] + rectangle[2] / 2, rectangle[1] + rectangle[3] / 2],
                                   [random.randint(0, 20) / 10 - 1, -2], random.randint(4, 6)])
 
-            if player_rect.colliderect(rectangle):
-                screen_shake = 20
-                player_pos.x = player_pos.x - x_change
-                player_pos.y = player_pos.y - y_change
-                pygame.draw.rect(screen, "red", player_rect, 1)
-
     # draw obstacles
     pygame.draw.rect(screen, (0,0,0), obstacle, 0)
     for i in range(0, len(obstacles)):
-        rectangle = pygame.draw.rect(screen, (0, 255, 0), [obstacles[i][0], 480 - obstacles[i][1], 20, obstacles[i][1]])
+        rectangle = pygame.draw.rect(screen, (0, 0, 0), [obstacles[i][0], 480 - obstacles[i][1], 40, obstacles[i][1]])
         rectangles[i] = rectangle
+
+    for rectangle in rectangles:
+
+        if player_rect.colliderect(rectangle):
+            screen_shake = 20
+            player_pos.x = player_pos.x - x_change
+            player_pos.y = player_pos.y - y_change
+            pygame.draw.rect(screen, "red", player_rect, 1)
+            my_font.render_to(screen, (560,250), "You Lose", (255, 255, 255))
+            gameover = True
+            final_score = math.floor(pygame.time.get_ticks()/100)
+            # screen.blit(text_surface, (560, 250))
 
     # pygame.draw.rect(screen, (0,0,0), (obstacle[0] + scrollspeed, obstacle[1], obstacle[2] + scrollspeed, obstacle[3]), 0)
 
@@ -198,7 +230,7 @@ while running:
     #     y_change -= 300 * dt
     # if keys[pygame.K_s]:
     #     y_change += 300 * dt
-    print(y_change)
+    # print(y_change)
     if keys[pygame.K_SPACE] and player_pos.y > 360:
         y_change -= 150 * dt
     if keys[pygame.K_a]:
@@ -213,8 +245,8 @@ while running:
 
     player_pos.x = player_pos.x + x_change
     player_pos.y = player_pos.y + y_change
-    player_rect.x = player_pos.x - 40
-    player_rect.y = player_pos.y - 40
+    player_rect.x = player_pos.x - 10
+    player_rect.y = player_pos.y + 10
 
     if keys[pygame.K_SPACE] and (player_pos.y - y_change) == 440:
         screen_shake = 20
@@ -247,6 +279,12 @@ while running:
         player_pos.x = player_pos.x - x_change
         player_pos.y = player_pos.y - y_change
         pygame.draw.rect(screen, "red", player_rect, 1)
+
+    if player_pos.x < 10:
+        player_pos.x = 10
+
+    if player_pos.x > 1270:
+        player_pos.x = 1270
 
     # RENDER YOUR GAME HERE
     floor = pygame.draw.rect(screen, (0,0,0), [0, 480, screen.get_width(), 20])
