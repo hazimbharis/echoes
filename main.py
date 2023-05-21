@@ -1,3 +1,5 @@
+import sys
+
 import pygame, math, random, pygame.freetype
 
 # pygame setup
@@ -23,6 +25,7 @@ class Game:
             dt = 0 # delta time
             my_font = pygame.freetype.Font('m5x7.ttf', 72)
             score_font = pygame.freetype.Font('m5x7.ttf', 48)
+
 
             # load bg image
             bg1 = pygame.image.load("plain_background.png").convert()
@@ -94,12 +97,16 @@ class Game:
                         curr_obs_count += 1
 
             while running:
+
+
                 keys = pygame.key.get_pressed()
                 if gameover:
                     for event in pygame.event.get():
                         if event.type == pygame.QUIT:
+                            print("quitting")
                             running = False
                             self.restartGame=False
+                            break
 
                         if keys[pygame.K_SPACE]:
                             running=False
@@ -126,6 +133,7 @@ class Game:
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         running = False
+                        self.restartGame=False
 
 
 
@@ -154,7 +162,7 @@ class Game:
                         self.generateNewRect(obstacles, i)
                         # obstacles[i][1] = random.randint(10,150) # new height
                         # obstacles[i][0] = random.randint(200,600) # new pos
-                        # score += 1
+                        final_score += 1
 
                 # print(player_pos.y)
                 if player_pos.y < 440: #200 for above floor, subtract when jumping
@@ -173,7 +181,7 @@ class Game:
                     scrollspeed = 0
 
                 screen.fill("black")
-                score_font.render_to(screen, (10, 10), "Score: " + math.floor(pygame.time.get_ticks()/100).__str__(), (255, 255, 255))
+                score_font.render_to(screen, (10, 10), "Score: " + final_score.__str__(), (255, 255, 255))
 
                 # draw player circle
                 #pygame.draw.circle(screen, "red", player_pos, 40)
@@ -220,7 +228,7 @@ class Game:
                         pygame.draw.rect(screen, "red", player_rect, 1)
                         my_font.render_to(screen, (560,250), "You Lose", (255, 255, 255))
                         gameover = True
-                        final_score = math.floor(pygame.time.get_ticks()/100)
+                     #   final_score = math.floor(pygame.time.get_ticks()/100)
                         # screen.blit(text_surface, (560, 250))
 
                 # pygame.draw.rect(screen, (0,0,0), (obstacle[0] + scrollspeed, obstacle[1], obstacle[2] + scrollspeed, obstacle[3]), 0)
