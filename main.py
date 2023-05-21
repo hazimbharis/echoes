@@ -26,33 +26,23 @@ class Game:
             my_font = pygame.freetype.Font('m5x7.ttf', 72)
             score_font = pygame.freetype.Font('m5x7.ttf', 48)
 
-
             # load bg image
-            bg1 = pygame.image.load("plain_background.png").convert()
-            bg2 = pygame.image.load("stalagmite_background.png").convert()
-            bg1 = pygame.transform.scale(bg1,(1280,500))
-            bg2 = pygame.transform.scale(bg2,(1280,500))
+            bg = pygame.image.load("bg.png").convert()
+            bg_width = bg.get_width()
 
             playerStandingSprite = pygame.image.load('standing_frame.png').convert_alpha()
-            playerWalkingSprite = pygame.image.load('walking_animation.gif').convert_alpha()
+            playerWalkingSprite = [pygame.image.load('walkAnim_1.png').convert_alpha(), pygame.image.load('walkAnim_2.png').convert_alpha()]
             playerJumpingSprite = pygame.image.load('jumping_frame.png').convert_alpha()
-
-            bg1_width = bg1.get_width()
-            bg1_height = bg1.get_height()
-            bg2_width = bg2.get_width()
-            bg2_height = bg2.get_width()
-
-            bgx = 0
-            bgx2 = bg1.get_width()
+            frameCount = 0
 
             # load sound
             echo_sound = pygame.mixer.Sound('heartbeat_2.wav')
             # get rect for bg image
-            bg_rect = bg1.get_rect()
+            bg_rect = bg.get_rect()
 
             # define game variables
             scrollspeed = 0
-            tiles = math.ceil(1280 / bg1_width) + 1
+            tiles = math.ceil(1280 / bg_width) + 1
             obstacle = pygame.Rect(800, 200, 80, 80)
 
             player_pos = pygame.Vector2(80, 440)
@@ -125,8 +115,6 @@ class Game:
 
                 x_change = 0
                 # y_change = 0
-                bgx -= 3
-                bgx2 -= 3
 
                 # poll for events
                 # pygame.QUIT event means the user clicked X to close your window
@@ -141,20 +129,11 @@ class Game:
                 # fill the screen with a color to wipe away anything from last frame
                 screen.fill("purple")
 
-                #moving background with multiple images
-                if bgx < bg1.get_width() * -1:
-                    bgx = bg1.get_width()
-                if bgx2 < bg1.get_width() * -1:
-                    bgx2 = bg1.get_width()
-
                 # draw scrolling background and bg edge
                 for i in range(0, tiles):
-                    # screen.blit(bg, (i * bg_width + scrollspeed, 0))
-                    screen.blit(bg1, (bgx, 0))
-                    screen.blit(bg2,(bgx2, 0))
-                    bg_rect.x = bgx + scrollspeed
-                    # bg_rect.x = i * bg_width + scrollspeed
-                    # pygame.draw.rect(screen, (0, 255, 0), bg_rect, 1)
+                    screen.blit(bg, (i * bg_width + scrollspeed, 0))
+                    bg_rect.x = i * bg_width + scrollspeed
+                    pygame.draw.rect(screen, (0, 255, 0), bg_rect, 1)
 
                 for i in range(len(obstacles)):
                     obstacles[i][0] -= obstacle_speed
@@ -164,20 +143,11 @@ class Game:
                         # obstacles[i][0] = random.randint(200,600) # new pos
                         final_score += 1
 
-                # print(player_pos.y)
-                if player_pos.y < 440: #200 for above floor, subtract when jumping
-                    player_pos.y += y_change
-                    y_change += gravity
-
-                if player_pos.y > 440:
-                    player_pos.y = 440
-                    y_change = 0
-
                 # scroll background
                 scrollspeed -= 5
 
                 # reset scroll
-                if abs(scrollspeed) > bg1_width:
+                if abs(scrollspeed) > bg_width:
                     scrollspeed = 0
 
                 screen.fill("black")
@@ -285,12 +255,28 @@ class Game:
                     render_offset[0] = random.randint(0, 8) - 4
                     render_offset[1] = random.randint(0, 8) - 4
                     pass
+                
+                if x_change != 0:
+                    screen.blit(playerWalkingSprite[math.floor(frameCount%2)], (player_pos.x - playerWalkingSprite[math.floor(frameCount%2)].get_width() / 2 + 1,
+                                                      player_pos.y - playerWalkingSprite[math.floor(frameCount%2)].get_height() / 2 + 20))
+                    frameCount += 0.25
+
 
                 if player_rect.colliderect(obstacle):
                     screen_shake = 20
                     player_pos.x = player_pos.x - x_change
                     player_pos.y = player_pos.y - y_change
                     pygame.draw.rect(screen, "red", player_rect, 1)
+                    
+                if player_pos.y < 440: #200 for above floor, subtract when jumping
+                    player_pos.y += y_change
+                    y_change += gravity
+                    screen.blit(playerJumpingSprite, (player_pos.x - playerJumpingSprite.get_width() / 2 + 1,
+                                          player_pos.y - playerJumpingSprite.get_height() / 2 + 20))
+
+                if player_pos.y > 440:
+                    player_pos.y = 440
+                    y_change = 0
 
                 if player_pos.x < 10:
                     player_pos.x = 10
